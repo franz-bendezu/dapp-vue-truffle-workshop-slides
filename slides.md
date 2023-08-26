@@ -617,7 +617,6 @@ async function numberSet() {
 ```
 
 ---
-
 layout: center
 ---
 # Creación de contrato para un NFT's
