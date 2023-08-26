@@ -467,42 +467,6 @@ export default {
 
 ---
 
-# Ejemplo: Integración de Datos desde Contratos
-
-```vue
-<template>
-  <div>
-    <h2>Saldo del Contrato:</h2>
-    <p>{{ contractBalance }}</p>
-  </div>
-</template>
-
-<script>
-import { ethers } from "ethers";
-
-export default {
-  data() {
-    return {
-      contractBalance: null,
-    };
-  },
-  async mounted() {
-    const provider = new ethers.providers.JsonRpcProvider();
-    const contract = new ethers.Contract(
-      "CONTRACT_ADDRESS",
-      ["function getBalance() view returns (uint256)"],
-      provider
-    );
-
-    const balance = await contract.getBalance();
-    this.contractBalance = balance.toString();
-  },
-};
-</script>
-```
-
----
-
 # Prueba de la Interfaz de Usuario
 
 1. Crear componentes Vue para interactuar con contratos.
@@ -510,6 +474,150 @@ export default {
 3. Probar la interacción con contratos en la interfaz.
 
 ---
+
+## Ejemplo: Integración de Datos desde Contratos en la Interfaz
+
+### Configuración de Ethers
+
+```vue
+<script lang="ts" setup>
+import { onMounted, ref } from 'vue'
+import { type AbstractProvider, ethers, type Signer } from 'ethers'
+
+let signer: Signer | null = null
+let provider: AbstractProvider | null = null
+
+onMounted(async () => {
+  // More info on: https://docs.ethers.org/v6/getting-started/#starting-connecting
+  if (window.ethereum == null) {
+    provider = ethers.getDefaultProvider('sepolia', {
+      infura: '<infura-key>'
+    })
+  } else {
+    const browserProvider = new ethers.BrowserProvider(window.ethereum)
+    provider = browserProvider
+    signer = await browserProvider.getSigner()
+  }
+})
+
+</script>
+```
+
+---
+
+### Lectura de Datos desde Contratos
+
+```typescript
+// ...
+import SimpleStorage from './assets/SimpleStorage.json'
+
+// ...
+const contractAddress = '<dirección del contrato>'
+const getNumber = ref('0')
+
+async function numberGet() {
+  try {
+    const contract = new ethers.Contract(contractAddress, SimpleStorage.abi, provider)
+    const result = await contract.get()
+    getNumber.value = result.toString()
+  } catch (error) {
+    console.error('Error al obtener el número:', error)
+  }
+}
+```
+
+---
+
+### Interfaz de Usuario para Lectura
+
+```vue
+<template>
+  <div class="card">
+    <h2 class="subtitle">Obtener tu uint256</h2>
+    <form class="form" @submit.prevent="numberGet">
+      <button class="button" type="submit">Obtener</button>
+      <label>
+        Tu uint256:
+        <input class="input" type="text" v-model="getNumber" readonly />
+      </label>
+    </form>
+  </div>
+</template>
+```
+
+---
+
+### Estilos
+
+```css
+<style>
+.card {
+  max-width: 500px;
+  min-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.form {
+  height: 20vh;
+  display: flex;
+  justify-content: space-evenly;
+  flex-direction: column;
+}
+.button {
+  background-color: #00d1b2;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  width: 100%;
+}
+</style>
+```
+
+---
+
+### Escritura de Datos en Contratos
+
+```typescript
+// ...
+
+const number = ref(0)
+async function numberSet() {
+  try {
+    const contract = new ethers.Contract(contractAddress, SimpleStorage.abi, signer)
+    const transaction = await contract.set(number.value)
+    await transaction.wait()
+    // Update state or show success message
+  } catch (error) {
+    console.error('Error setting number:', error)
+  }
+}
+```
+
+---
+
+# Interfaz de Usuario para la Escritura
+
+```html
+ <div class="card">
+    <h2 class="subtitle">Establecer tu uint256</h2>
+    <form class="form" @submit.prevent="numberSet">
+      <label>
+        Establece tu uint256:
+        <input class="input" type="text" v-model="number" />
+      </label>
+      <button class="button" type="submit">Confirmar</button>
+    </form>
+    <br />
+ <!-- ... -->
+</div>
+```
+
+---
+
 layout: center
 ---
 # Creación de contrato para un NFT's
